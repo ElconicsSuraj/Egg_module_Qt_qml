@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>assets/test.qml</file>
+        <file>assets/camera.jpg</file>
+        <file>assets/egg.png</file>
+    </qresource>
+</RCC>
