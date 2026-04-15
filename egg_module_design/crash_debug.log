@@ -1,0 +1,20 @@
+Starting crash debug...
+CRASH DETECTED:
+Traceback (most recent call last):
+  File "O:\Desktop\vantara\egg-model\egg_module_design_17_03_26\debug_launch.py", line 9, in <module>
+    from main import app, engine
+  File "O:\Desktop\vantara\egg-model\egg_module_design_17_03_26\main.py", line 5, in <module>
+    from backend import EggModuleBackend
+  File "O:\Desktop\vantara\egg-model\egg_module_design_17_03_26\backend.py", line 24, in <module>
+    from src.core.detector import EggDetector
+  File "O:\Desktop\vantara\egg-model\egg_module_design_17_03_26\ai_engine\src\core\detector.py", line 13, in <module>
+    from ultralytics import settings
+  File "O:\Desktop\vantara\egg-model\egg_module_design_17_03_26\venv\Lib\site-packages\ultralytics\__init__.py", line 13, in <module>
+    from ultralytics.utils import ASSETS, SETTINGS
+  File "O:\Desktop\vantara\egg-model\egg_module_design_17_03_26\venv\Lib\site-packages\ultralytics\utils\__init__.py", line 26, in <module>
+    import torch
+  File "O:\Desktop\vantara\egg-model\egg_module_design_17_03_26\venv\Lib\site-packages\torch\__init__.py", line 280, in <module>
+    _load_dll_libraries()
+  File "O:\Desktop\vantara\egg-model\egg_module_design_17_03_26\venv\Lib\site-packages\torch\__init__.py", line 263, in _load_dll_libraries
+    raise err
+OSError: [WinError 1114] A dynamic link library (DLL) initialization routine failed. Error loading "O:\Desktop\vantara\egg-model\egg_module_design_17_03_26\venv\Lib\site-packages\torch\lib\c10.dll" or one of its dependencies.

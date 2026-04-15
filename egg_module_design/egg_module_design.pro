@@ -1,21 +1,22 @@
-QT += quick
+QT += core gui quick qml multimedia quickcontrols2
+HEADERS += backend.h
+QT += core gui quick qml multimedia quickcontrols2 widgets
+CONFIG += c++17
 
-# You can make your code fail to compile if it uses deprecated APIs.
-# In order to do so, uncomment the following line.
-#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
+TARGET = egg_module_design
+TEMPLATE = app
 
 SOURCES += \
-        main.cpp
+    main.cpp
 
 RESOURCES += qml.qrc
 
-# Additional import path used to resolve QML modules in Qt Creator's code model
+# Additional import path used to resolve QML modules
 QML_IMPORT_PATH =
-
-# Additional import path used to resolve QML modules just for Qt Quick Designer
 QML_DESIGNER_IMPORT_PATH =
 
-# Default rules for deployment.
+# Deployment rules
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
+
 !isEmpty(target.path): INSTALLS += target

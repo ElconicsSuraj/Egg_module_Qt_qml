@@ -1,0 +1,35 @@
+[
+  {
+    "label": "Egg_105x75",
+    "known_length_mm": 105.0,
+    "known_width_mm": 75.0,
+    "avg_major_px": 414.42,
+    "avg_minor_px": 293.02,
+    "pixel_to_mm_length": 0.25336535,
+    "pixel_to_mm_width": 0.25595104,
+    "frames_used": 20,
+    "timestamp": "2026-03-20T11:04:10"
+  },
+  {
+    "label": "Egg_63x47",
+    "known_length_mm": 63.46,
+    "known_width_mm": 47.66,
+    "avg_major_px": 231.83,
+    "avg_minor_px": 175.07,
+    "pixel_to_mm_length": 0.27373866,
+    "pixel_to_mm_width": 0.27224136,
+    "frames_used": 18,
+    "timestamp": "2026-03-20T11:05:21"
+  },
+  {
+    "label": "Egg_20x12",
+    "known_length_mm": 20.0,
+    "known_width_mm": 12.0,
+    "avg_major_px": 68.5,
+    "avg_minor_px": 40.72,
+    "pixel_to_mm_length": 0.29197353,
+    "pixel_to_mm_width": 0.29470303,
+    "frames_used": 18,
+    "timestamp": "2026-03-20T11:06:48"
+  }
+]

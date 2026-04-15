@@ -1,0 +1,25 @@
+{
+  "version": 3,
+  "pipeline_version": 3,
+  "timestamp": "2026-03-17T10:43:16",
+  "pixel_to_mm_length": 0.26789734266238784,
+  "pixel_to_mm_width": 0.2541431511828824,
+  "pixel_to_mm_avg": 0.260520246922635,
+  "stats": {
+    "frames_captured": 20,
+    "frames_used": 19,
+    "outliers_removed": 1,
+    "major_px_mean": 413.47,
+    "major_px_std": 77.73,
+    "minor_px_mean": 278.46,
+    "minor_px_std": 29.65
+  },
+  "reference_egg": {
+    "known_length_mm": 21.0,
+    "known_width_mm": 21.0
+  },
+  "verification": null,
+  "lens": null,
+  "homography": null,
+  "homography_ptm": null
+}

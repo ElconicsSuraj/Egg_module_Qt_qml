@@ -1,0 +1,12 @@
+Looking in indexes: https://pypi.org/simple, https://www.piwheels.org/simple
+Collecting PySide6
+  Using cached pyside6-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl.metadata (5.3 kB)
+Collecting shiboken6==6.10.2 (from PySide6)
+  Using cached shiboken6-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl.metadata (2.5 kB)
+Collecting PySide6_Essentials==6.10.2 (from PySide6)
+  Using cached pyside6_essentials-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl.metadata (3.7 kB)
+Collecting PySide6_Addons==6.10.2 (from PySide6)
+  Using cached pyside6_addons-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl.metadata (4.0 kB)
+Using cached pyside6-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl (563 kB)
+Downloading pyside6_addons-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl (166.4 MB)
+   ╸                                        3.4/166.4 MB 77.9 kB/s eta 0:34:53
