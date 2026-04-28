@@ -1,0 +1,13 @@
+[
+  {
+    "label": "Egg_52x36",
+    "known_length_mm": 52.0,
+    "known_width_mm": 36.0,
+    "avg_major_px": 380.82,
+    "avg_minor_px": 263.54,
+    "pixel_to_mm_length": 0.13654646,
+    "pixel_to_mm_width": 0.13660047,
+    "frames_used": 20,
+    "timestamp": "2026-04-28T10:21:53"
+  }
+]
