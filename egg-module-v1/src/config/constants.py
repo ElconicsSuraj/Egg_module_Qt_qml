@@ -20,6 +20,11 @@ class Config:
         self.camera_width = int(os.getenv("CAMERA_WIDTH", "1280"))
         self.camera_height = int(os.getenv("CAMERA_HEIGHT", "720"))
         self.camera_height_mm = float(os.getenv("CAMERA_HEIGHT_MM", "300.0"))
+        
+        # --- GPIO Configuration ---
+        self.candling_led_pin = int(os.getenv("CANDLING_LED_PIN", "17"))
+        self.heartbeat_sensor_pin = int(os.getenv("HEARTBEAT_SENSOR_PIN", "22"))
+        self.heartbeat_led_pin = int(os.getenv("HEARTBEAT_LED_PIN", "27"))
 
         # --- Detection Pipeline (Sensible Defaults) ---
         self.confidence_threshold = float(os.getenv("CONFIDENCE_THRESHOLD", "0.35"))

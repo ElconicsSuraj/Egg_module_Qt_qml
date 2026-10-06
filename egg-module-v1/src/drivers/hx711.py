@@ -2,7 +2,12 @@
 import time
 import threading
 
-import lgpio
+try:
+    import lgpio
+except ImportError:
+    lgpio = None
+    raise ImportError("lgpio module is only available on Raspberry Pi / Linux hardware.")
+
 
 class GPIO:
     BCM = None

@@ -17,6 +17,7 @@ ApplicationWindow {
     property real scaleFactor: Math.min(width / 1920, height / 1080)
     function s(px) { return px * scaleFactor }
     property string currentTime: Qt.formatDateTime(new Date(), "dd MMM yyyy - hh:mm:ss AP")
+    property string currentScreen: "main"
 
     Timer {
         interval: 1000
@@ -37,9 +38,11 @@ ApplicationWindow {
     }
 
     //-----------------------------------------
-    // MAIN CONTAINER
+    // MAIN CONTAINER (MAIN DASHBOARD SCREEN)
     //-----------------------------------------
     ColumnLayout {
+        id: mainDashboardScreen
+        visible: root.currentScreen === "main"
         anchors.fill: parent
         anchors.margins: s(30)
         spacing: s(25)
@@ -217,11 +220,11 @@ ApplicationWindow {
         //-----------------------------------------
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: s(30)
+            spacing: s(20)
             
             // Tare Button
             Rectangle {
-                width: s(200)
+                width: s(160)
                 height: s(60)
                 radius: s(30)
                 gradient: Gradient {
@@ -231,7 +234,7 @@ ApplicationWindow {
                 Text {
                     anchors.centerIn: parent
                     text: "Tare"
-                    font.pixelSize: s(22)
+                    font.pixelSize: s(20)
                     font.bold: true
                     color: "black"
                 }
@@ -243,7 +246,7 @@ ApplicationWindow {
 
             // Calibrate Button
             Rectangle {
-                width: s(200)
+                width: s(180)
                 height: s(60)
                 radius: s(30)
                 gradient: Gradient {
@@ -253,13 +256,89 @@ ApplicationWindow {
                 Text {
                     anchors.centerIn: parent
                     text: "Calibration"
-                    font.pixelSize: s(22)
+                    font.pixelSize: s(20)
                     font.bold: true
                     color: "white"
                 }
                 MouseArea {
                     anchors.fill: parent
                     onClicked: calibrationWizard.open()
+                }
+            }
+
+            // Heartbeat Screening Button
+            Rectangle {
+                width: s(250)
+                height: s(60)
+                radius: s(30)
+                gradient: Gradient {
+                    GradientStop { position: 0; color: "#00e5ff" }
+                    GradientStop { position: 1; color: "#00838f" }
+                }
+                border.color: "#80deea"
+                border.width: s(2)
+
+                RowLayout {
+                    anchors.centerIn: parent
+                    spacing: s(8)
+
+                    Text {
+                        text: "💓"
+                        font.pixelSize: s(22)
+                    }
+
+                    Text {
+                        text: "Heartbeat Screening"
+                        font.pixelSize: s(19)
+                        font.bold: true
+                        color: "#000000"
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: root.currentScreen = "heartbeat"
+                }
+            }
+
+            // Candling Button
+            Rectangle {
+                width: s(200)
+                height: s(60)
+                radius: s(30)
+                gradient: Gradient {
+                    GradientStop { 
+                        position: 0 
+                        color: antzBackend.candlingState ? "#ffe082" : "#ffb300" 
+                    }
+                    GradientStop { 
+                        position: 1 
+                        color: antzBackend.candlingState ? "#ffb300" : "#ff8f00" 
+                    }
+                }
+                border.color: "#fff59d"
+                border.width: s(2)
+
+                RowLayout {
+                    anchors.centerIn: parent
+                    spacing: s(8)
+
+                    Text {
+                        text: "💡"
+                        font.pixelSize: s(22)
+                    }
+
+                    Text {
+                        text: "Candling"
+                        font.pixelSize: s(20)
+                        font.bold: true
+                        color: "#000000"
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: root.currentScreen = "candling"
                 }
             }
         }
@@ -638,8 +717,35 @@ ApplicationWindow {
                         }
                     }
                 }
-                
                 Item { Layout.fillHeight: true }
+            }
+        }
+    }
+
+    //-----------------------------------------
+    // DEDICATED HEARTBEAT SCREENING VIEW
+    //-----------------------------------------
+    Loader {
+        anchors.fill: parent
+        active: root.currentScreen === "heartbeat"
+        sourceComponent: Component {
+            HeartbeatScreen {
+                scaleFactor: root.scaleFactor
+                onBackClicked: root.currentScreen = "main"
+            }
+        }
+    }
+
+    //-----------------------------------------
+    // DEDICATED CANDLING VIEW
+    //-----------------------------------------
+    Loader {
+        anchors.fill: parent
+        active: root.currentScreen === "candling"
+        sourceComponent: Component {
+            CandlingScreen {
+                scaleFactor: root.scaleFactor
+                onBackClicked: root.currentScreen = "main"
             }
         }
     }

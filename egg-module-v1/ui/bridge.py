@@ -11,6 +11,8 @@ class EggModuleBridge(QObject):
     imageChanged = Signal()
     calSessionCountChanged = Signal()
     calSessionTargetChanged = Signal()
+    candlingChanged = Signal()
+    heartbeatChanged = Signal()
 
     def __init__(self, engine):
         super().__init__()
@@ -19,6 +21,45 @@ class EggModuleBridge(QObject):
         # Connect engine callbacks to signals
         self.engine.callback_metrics = self.updateMetrics.emit
         self.engine.callback_image = self.imageChanged.emit
+        self.engine.callback_heartbeat = self.heartbeatChanged.emit
+
+    # --- Candling Properties ---
+    @Property(bool, notify=candlingChanged)
+    def candlingState(self):
+        return getattr(self.engine, "candling_state", False)
+
+    # --- Heartbeat Screening Properties ---
+    @Property(bool, notify=heartbeatChanged)
+    def heartbeatActive(self):
+        return getattr(self.engine.heartbeat_driver, "active", False)
+
+    @Property(float, notify=heartbeatChanged)
+    def heartbeatBpm(self):
+        return getattr(self.engine.heartbeat_driver, "bpm", 0.0)
+
+    @Property(str, notify=heartbeatChanged)
+    def heartbeatStatus(self):
+        return getattr(self.engine.heartbeat_driver, "status", "Stopped")
+
+    @Property(str, notify=heartbeatChanged)
+    def heartbeatSignalStatus(self):
+        return getattr(self.engine.heartbeat_driver, "signal_quality", "DISCONNECTED")
+
+    @Property(bool, notify=heartbeatChanged)
+    def heartbeatPulseDetected(self):
+        return getattr(self.engine.heartbeat_driver, "pulse_detected", False)
+
+    @Property(float, notify=heartbeatChanged)
+    def heartbeatRawSignal(self):
+        return getattr(self.engine.heartbeat_driver, "raw_signal", 0.0)
+
+    @Property(int, notify=heartbeatChanged)
+    def heartbeatSensorPin(self):
+        return getattr(self.engine.heartbeat_driver, "sensor_pin", 22)
+
+    @Property(int, notify=heartbeatChanged)
+    def heartbeatLedPin(self):
+        return getattr(self.engine.heartbeat_driver, "led_pin", 27)
 
     # --- Metrics Properties ---
     @Property(float, notify=updateMetrics)
@@ -66,6 +107,21 @@ class EggModuleBridge(QObject):
     def calSessionCount(self): return self.engine.cal_session_count
 
     # --- Slots ---
+    @Slot()
+    def toggleCandling(self):
+        self.engine.toggle_candling()
+        self.candlingChanged.emit()
+
+    @Slot()
+    def startHeartbeatScreening(self):
+        self.engine.start_heartbeat_screening()
+        self.heartbeatChanged.emit()
+
+    @Slot()
+    def stopHeartbeatScreening(self):
+        self.engine.stop_heartbeat_screening()
+        self.heartbeatChanged.emit()
+
     @Slot()
     def tareScale(self):
         self.engine._tare_requested = True

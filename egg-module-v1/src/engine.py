@@ -18,25 +18,30 @@ from src.core.calibration import CalibrationManager
 from src.core.measurement import EggMeasurement
 from src.utils.overlay import DisplayOverlay
 
+from src.drivers.candling import CandlingLED
+from src.drivers.heartbeat import HeartbeatSensorDriver
+
+logger = logging.getLogger(__name__)
+
 # Standardized import for hardware
 try:
     from src.drivers.hx711 import HX711
     HAS_HARDWARE = True
 except Exception as e:
-    logger.error(f"Hardware import failed: {e}")
+    logger.warning(f"Hardware import failed (running in simulated/no-hardware mode): {e}")
     HAS_HARDWARE = False
 
-logger = logging.getLogger(__name__)
 
 class EggModuleEngine:
     """
     Core logic engine for the Egg Module.
-    Handles AI loops, camera management, and weight sensor interaction.
+    Handles AI loops, camera management, weight sensor, candling LED, and heartbeat screening.
     """
-    def __init__(self, callback_metrics, callback_image):
+    def __init__(self, callback_metrics, callback_image, callback_heartbeat=None):
         self._running = True
         self.callback_metrics = callback_metrics
         self.callback_image = callback_image
+        self.callback_heartbeat = callback_heartbeat or (lambda: None)
         
         # State
         self.weight = 0.0
@@ -88,14 +93,43 @@ class EggModuleEngine:
                 logger.error(f"Hardware init failed: {e}")
                 self.hx = None
 
+        self.candling_led = CandlingLED(pin=self.config.candling_led_pin)
+        self.candling_state = False
+
+        self.heartbeat_driver = HeartbeatSensorDriver(
+            sensor_pin=self.config.heartbeat_sensor_pin,
+            led_pin=self.config.heartbeat_led_pin
+        )
+
         # --- Start Threads ---
         threading.Thread(target=self._ai_loop, daemon=True).start()
         threading.Thread(target=self._weight_loop, daemon=True).start()
+        threading.Thread(target=self._heartbeat_notify_loop, daemon=True).start()
+
+    def toggle_candling(self):
+        self.candling_state = self.candling_led.toggle()
+        return self.candling_state
+
+    def start_heartbeat_screening(self):
+        self.heartbeat_driver.start()
+
+    def stop_heartbeat_screening(self):
+        self.heartbeat_driver.stop()
 
     def stop(self):
         self._running = False
+        if hasattr(self, "heartbeat_driver"):
+            self.heartbeat_driver.cleanup()
+        if hasattr(self, "candling_led"):
+            self.candling_led.cleanup()
         if self.camera:
             self.camera.release()
+
+    def _heartbeat_notify_loop(self):
+        while self._running:
+            if self.heartbeat_driver.active:
+                self.callback_heartbeat()
+            time.sleep(0.05)
 
     def _ai_loop(self):
         while self._running:
