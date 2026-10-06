@@ -145,27 +145,27 @@ class HX711:
         # driving the HX711 serial interface.
         self.readLock.acquire()
 
-        # Wait until HX711 is ready for us to read a sample.
-        start_time = time.time()
-        while not self.is_ready():
-           time.sleep(0.01)
-           if time.time() - start_time > 1.0:
-               raise TimeoutError("HX711 sensor not ready (timeout)")
+        try:
+            # Wait until HX711 is ready for us to read a sample.
+            start_time = time.time()
+            while not self.is_ready():
+               time.sleep(0.01)
+               if time.time() - start_time > 1.0:
+                   raise TimeoutError("HX711 sensor not ready (timeout)")
 
-        # Read three bytes of data from the HX711.
-        firstByte  = self.readNextByte()
-        secondByte = self.readNextByte()
-        thirdByte  = self.readNextByte()
+            # Read three bytes of data from the HX711.
+            firstByte  = self.readNextByte()
+            secondByte = self.readNextByte()
+            thirdByte  = self.readNextByte()
 
-        # HX711 Channel and gain factor are set by number of bits read
-        # after 24 data bits.
-        for i in range(self.GAIN):
-           # Clock a bit out of the HX711 and throw it away.
-           self.readNextBit()
-
-        # Release the Read Lock, now that we've finished driving the HX711
-        # serial interface.
-        self.readLock.release()           
+            # HX711 Channel and gain factor are set by number of bits read
+            # after 24 data bits.
+            for i in range(self.GAIN):
+               # Clock a bit out of the HX711 and throw it away.
+               self.readNextBit()
+        finally:
+            # Always release the lock, even if an exception (e.g. TimeoutError) is raised.
+            self.readLock.release()
 
         # Depending on how we're configured, return an ordered list of raw byte
         # values.
@@ -412,37 +412,22 @@ class HX711:
         
         
     def power_down(self):
-        # Wait for and get the Read Lock, in case another thread is already
-        # driving the HX711 serial interface.
         self.readLock.acquire()
-
-        # Because a rising edge on HX711 Digital Serial Clock (PD_SCK).  We then
-        # leave it held up and wait 100us.  After 60us the HX711 should be
-        # powered down.
-        GPIO.output(self.PD_SCK, False)
-        GPIO.output(self.PD_SCK, True)
-
-        time.sleep(0.0001)
-
-        # Release the Read Lock, now that we've finished driving the HX711
-        # serial interface.
-        self.readLock.release()           
+        try:
+            GPIO.output(self.PD_SCK, False)
+            GPIO.output(self.PD_SCK, True)
+            time.sleep(0.0001)
+        finally:
+            self.readLock.release()
 
 
     def power_up(self):
-        # Wait for and get the Read Lock, incase another thread is already
-        # driving the HX711 serial interface.
         self.readLock.acquire()
-
-        # Lower the HX711 Digital Serial Clock (PD_SCK) line.
-        GPIO.output(self.PD_SCK, False)
-
-        # Wait 100 us for the HX711 to power back up.
-        time.sleep(0.0001)
-
-        # Release the Read Lock, now that we've finished driving the HX711
-        # serial interface.
-        self.readLock.release()
+        try:
+            GPIO.output(self.PD_SCK, False)
+            time.sleep(0.0001)
+        finally:
+            self.readLock.release()
 
         # HX711 will now be defaulted to Channel A with gain of 128.  If this
         # isn't what client software has requested from us, take a sample and
