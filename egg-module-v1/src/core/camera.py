@@ -113,17 +113,19 @@ class CameraManager:
         """
         Read the LATEST frame from camera, skipping old buffered frames.
         This is critical for real-time response - prevents 3+ second delays.
-        
+
         When YOLO takes 340ms but camera captures at ~30fps (33ms per frame),
         the buffer accumulates ~10 old frames. This method drains the queue
         and returns only the newest frame.
-        
+
         Args:
             max_skip: Maximum frames to skip looking for latest (default: 5)
-        
+
         Returns:
             (success, frame_undistorted) - The latest available frame with lens correction applied
         """
+        if self._cap is None:
+            return False, None
         ret, frame = self._cap.read()
         if not ret:
             return ret, frame
