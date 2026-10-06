@@ -393,43 +393,6 @@ Rectangle {
                         }
                     }
 
-                    // GPIO CONFIGURATION LOCATION PANEL
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: s(130)
-                        radius: s(18)
-                        color: "#0a1929"
-                        border.color: "#132f4c"
-                        border.width: s(1)
-
-                        ColumnLayout {
-                            anchors.fill: parent
-                            anchors.margins: s(18)
-                            spacing: s(10)
-
-                            Text {
-                                text: "HARDWARE & GPIO PINOUT"
-                                color: "#ffd54f"
-                                font.pixelSize: s(13)
-                                font.bold: true
-                            }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Text { text: "Pulse Sensor Signal:"; color: "#90a4ae"; font.pixelSize: s(14) }
-                                Item { Layout.fillWidth: true }
-                                Text { text: "Raspberry Pi GPIO " + antzBackend.heartbeatSensorPin; color: "#00e5ff"; font.pixelSize: s(14); font.bold: true }
-                            }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Text { text: "Heartbeat LED Output:"; color: "#90a4ae"; font.pixelSize: s(14) }
-                                Item { Layout.fillWidth: true }
-                                Text { text: "Raspberry Pi GPIO " + antzBackend.heartbeatLedPin; color: "#ff8a80"; font.pixelSize: s(14); font.bold: true }
-                            }
-                        }
-                    }
-
                     Item { Layout.fillHeight: true }
 
                     // START / STOP SCREENING CONTROLLER BUTTON
