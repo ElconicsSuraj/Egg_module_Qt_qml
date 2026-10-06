@@ -329,7 +329,7 @@ ApplicationWindow {
                     }
 
                     Text {
-                        text: "Candling"
+                        text: antzBackend.candlingState ? "Candling ON" : "Candling"
                         font.pixelSize: s(20)
                         font.bold: true
                         color: "#000000"
@@ -338,7 +338,7 @@ ApplicationWindow {
 
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: root.currentScreen = "candling"
+                    onClicked: antzBackend.toggleCandling()
                 }
             }
         }
@@ -736,17 +736,4 @@ ApplicationWindow {
         }
     }
 
-    //-----------------------------------------
-    // DEDICATED CANDLING VIEW
-    //-----------------------------------------
-    Loader {
-        anchors.fill: parent
-        active: root.currentScreen === "candling"
-        sourceComponent: Component {
-            CandlingScreen {
-                scaleFactor: root.scaleFactor
-                onBackClicked: root.currentScreen = "main"
-            }
-        }
-    }
 }
