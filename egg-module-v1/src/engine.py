@@ -67,6 +67,11 @@ class EggModuleEngine:
         self._cal_known_l = 0.0
         self._cal_known_w = 0.0
 
+        # Shared state between camera and inference threads
+        self._latest_frame = None
+        self._latest_inference = None
+        self._inference_lock = threading.Lock()
+
         # --- AI Engine Init ---
         env_path = os.path.join(AI_ENGINE_ROOT, ".env")
         self.config = Config(env_path)
@@ -102,7 +107,8 @@ class EggModuleEngine:
         )
 
         # --- Start Threads ---
-        threading.Thread(target=self._ai_loop, daemon=True).start()
+        threading.Thread(target=self._camera_loop, daemon=True).start()
+        threading.Thread(target=self._inference_loop, daemon=True).start()
         threading.Thread(target=self._weight_loop, daemon=True).start()
         threading.Thread(target=self._heartbeat_notify_loop, daemon=True).start()
 
@@ -131,7 +137,9 @@ class EggModuleEngine:
                 self.callback_heartbeat()
             time.sleep(0.05)
 
-    def _ai_loop(self):
+    def _camera_loop(self):
+        """Fast loop: captures frames and pushes to UI at camera rate (~30fps).
+        Does NOT run YOLO — draws overlay from the last inference result."""
         while self._running:
             ret, frame = self.camera.read_frame_latest()
             connected = ret and frame is not None
@@ -139,12 +147,40 @@ class EggModuleEngine:
                 self.camera_connected = connected
 
             if not connected:
-                time.sleep(0.1)
+                time.sleep(0.05)
+                continue
+
+            self._latest_frame = frame
+
+            # Draw overlay using last known inference result (non-blocking)
+            df = frame.copy()
+            with self._inference_lock:
+                m = self._latest_inference
+            if m and not m.get("is_hand", False):
+                self.overlay.draw_egg(df, m["result"])
+
+            rgb = cv2.cvtColor(df, cv2.COLOR_BGR2RGB)
+            h, w = rgb.shape[:2]
+            self.latest_qimage = QImage(rgb.data, w, h, w * 3, QImage.Format_RGB888).copy()
+            self.callback_image()
+
+            time.sleep(0.033)  # ~30 fps cap
+
+    def _inference_loop(self):
+        """Slow loop: runs YOLO inference and updates metrics at model speed."""
+        frame_count = 0
+        while self._running:
+            frame = self._latest_frame
+            if frame is None:
+                time.sleep(0.05)
                 continue
 
             m = self.measurement_engine.measure_frame(frame)
             self.measurement_engine.update_state(m)
-            
+
+            with self._inference_lock:
+                self._latest_inference = m
+
             # Calibration Logic
             if self.is_calibrating and m is not None and not m.get("is_hand", False):
                 if m.get("in_center", False):
@@ -152,21 +188,20 @@ class EggModuleEngine:
                         self._cal_buffer.append((m["major_px"], m["minor_px"]))
                         self.cal_progress = int((len(self._cal_buffer) / self.config.num_calibration_frames) * 100)
                         self.cal_status = f"Capturing: {len(self._cal_buffer)}/{self.config.num_calibration_frames}"
-                        
                         if len(self._cal_buffer) >= self.config.num_calibration_frames:
                             self._finish_calibration()
                     else:
                         self.cal_status = "Stabilizing Egg..."
                 else:
                     self.cal_status = "Place in Center"
-            
+
             # State synchronization
             detected = m is not None and not m.get("is_hand", False)
             centered = m.get("in_center", False) if detected else False
             self.is_egg_detected = detected
             self.is_centered = centered
             self.is_settled = self.measurement_engine._settled
-            
+
             if not detected:
                 self.length, self.breadth, self.confidence = "0.0 mm", "0.0 mm", "0%"
             else:
@@ -176,20 +211,9 @@ class EggModuleEngine:
                     self.breadth = f"{stable['breadth_mm']:.1f} mm"
                     self.confidence = f"{stable['confidence_score']:.0f}%"
 
-            # UI Frame Generation
-            df = frame.copy()
-            if m and not m.get("is_hand", False): 
-                self.overlay.draw_egg(df, m["result"])
-            rgb = cv2.cvtColor(df, cv2.COLOR_BGR2RGB)
-            self.latest_qimage = QImage(rgb.data, rgb.shape[1], rgb.shape[0], rgb.shape[1]*3, QImage.Format_RGB888).copy()
-
-            self.callback_image()
-            if not hasattr(self, "_frame_count"): self._frame_count = 0
-            self._frame_count += 1
-            if self._frame_count % 3 == 0:
+            frame_count += 1
+            if frame_count % 3 == 0:
                 self.callback_metrics()
-                
-            time.sleep(0.01)
 
     def _weight_loop(self):
         while self._running:
