@@ -412,7 +412,7 @@ ApplicationWindow {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.margins: s(15)
-                iconSource: "assets/close.png"
+                iconSource: "../assets/close.png"
                 onClicked: { calibrationWizard.visible = false; calibrationWizard.step = -1 }
             }
 
