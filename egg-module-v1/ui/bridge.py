@@ -106,6 +106,9 @@ class EggModuleBridge(QObject):
     @Property(int, notify=calSessionCountChanged)
     def calSessionCount(self): return self.engine.cal_session_count
 
+    @Property(str, notify=updateMetrics)
+    def weightCalStatus(self): return self.engine.weight_cal_status
+
     # --- Slots ---
     @Slot()
     def toggleCandling(self):
@@ -177,3 +180,26 @@ class EggModuleBridge(QObject):
         if abs(est_l - knownL) > 5.0 or abs(est_w - knownW) > 5.0:
             return f"Warning: AI thinks this egg is {est_l:.1f}x{est_w:.1f}mm.\nAre you sure?"
         return "OK"
+
+    # ------------------------------------------------------------------
+    # Load-Cell Gravimetric Calibration Slots
+    # ------------------------------------------------------------------
+    @Slot()
+    def beginTare(self):
+        """Phase 1: tare empty plate (known mass value is provided at confirmation step)."""
+        self.engine.weight_cal_status = "Idle"
+        self.engine.start_weight_calibration(0.0)   # known_g is set in confirmWeightLoaded
+        self.updateMetrics.emit()
+
+    @Slot(float)
+    def confirmWeightLoaded(self, knownWeightG):
+        """Phase 2: user places traceable mass and enters its value — trigger ADC sampling."""
+        self.engine._weight_cal_known_g = knownWeightG
+        self.engine.weight_cal_status = "Sampling"
+        self.updateMetrics.emit()
+
+    @Slot()
+    def cancelWeightCalibration(self):
+        """Abort the gravimetric calibration sequence."""
+        self.engine.weight_cal_status = "Idle"
+        self.updateMetrics.emit()

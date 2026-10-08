@@ -60,7 +60,12 @@ class EggModuleEngine:
         self.last_cal_result = ""
         self.cal_session_target = 1
         self.cal_session_count = 0
-        
+
+        # Load-cell gravimetric calibration state
+        self.weight_cal_status = "Idle"     # "Idle" | "Taring" | "AwaitingLoad" | "Sampling" | "Done" | "Error"
+        self._weight_cal_known_g = 0.0
+        self._weight_cal_ref_unit = None
+
         self._tare_requested = False
         self._session_entries = []
         self._cal_buffer = []
@@ -92,7 +97,21 @@ class EggModuleEngine:
         if HAS_HARDWARE:
             try:
                 self.hx = HX711(5, 6)
-                self.hx.set_reference_unit(-840)
+                # Load persisted gravimetric calibration if available; else use hard-coded default
+                import json as _json
+                _weight_cal_path = os.path.join(
+                    os.path.dirname(self.config.calibration_file), "weight_calibration.json"
+                )
+                _default_ref_unit = -840
+                if os.path.exists(_weight_cal_path):
+                    try:
+                        with open(_weight_cal_path) as _f:
+                            _wc = _json.load(_f)
+                        _default_ref_unit = _wc.get("reference_unit", _default_ref_unit)
+                        logger.info(f"Load-cell: loaded persisted reference_unit={_default_ref_unit} from {_weight_cal_path}")
+                    except Exception as _e:
+                        logger.warning(f"Could not read weight_calibration.json: {_e}")
+                self.hx.set_reference_unit(_default_ref_unit)
                 self.hx.tare()
             except Exception as e:
                 logger.error(f"Hardware init failed: {e}")
@@ -257,4 +276,96 @@ class EggModuleEngine:
         except Exception as e:
             self.cal_status = "Capture Error"
             self.last_cal_result = f"Error: {str(e)}"
+        self.callback_metrics()
+
+    # ------------------------------------------------------------------
+    # Load-Cell Gravimetric Calibration
+    # ------------------------------------------------------------------
+    def start_weight_calibration(self, known_weight_g: float):
+        """
+        Initiate a two-phase gravimetric calibration of the HX711 load cell.
+        Phase 1: Tare (empty plate).
+        Phase 2: Apply traceable mass, acquire raw ADC samples, derive reference_unit.
+        """
+        self._weight_cal_known_g = known_weight_g
+        self._weight_cal_ref_unit = None
+        threading.Thread(target=self._weight_cal_sequence, daemon=True).start()
+
+    def _weight_cal_sequence(self):
+        """Background thread: tare → wait for UI confirmation → sample → persist."""
+        import json
+
+        if not self.hx:
+            self.weight_cal_status = "Error: No load-cell hardware detected."
+            self.callback_metrics()
+            return
+
+        # --- Phase 1: Tare (empty plate) ---
+        self.weight_cal_status = "Taring"
+        self.callback_metrics()
+        try:
+            self.hx.set_reference_unit(1)   # raw ADC mode
+            self.hx.tare()
+        except Exception as exc:
+            self.weight_cal_status = f"Error: Tare failed — {exc}"
+            self.callback_metrics()
+            return
+
+        # --- Phase 2: Await known mass placement (UI signals via flag) ---
+        self.weight_cal_status = "AwaitingLoad"
+        self.callback_metrics()
+
+        # Spin-wait until the UI sets the flag
+        while self.weight_cal_status == "AwaitingLoad":
+            time.sleep(0.1)
+
+        if self.weight_cal_status != "Sampling":
+            return  # User cancelled
+
+        # --- Phase 3: Acquire raw ADC samples ---
+        time.sleep(1.0)  # Allow load to stabilise
+        raw_readings = []
+        for _ in range(15):
+            try:
+                raw_readings.append(self.hx.get_value(5))
+            except Exception:
+                pass
+            time.sleep(0.3)
+
+        if len(raw_readings) < 5:
+            self.weight_cal_status = "Error: Insufficient ADC samples. Check sensor wiring."
+            self.callback_metrics()
+            return
+
+        raw_avg = sum(raw_readings) / len(raw_readings)
+        ref_unit = raw_avg / self._weight_cal_known_g
+        self._weight_cal_ref_unit = ref_unit
+
+        # Apply immediately to live HX711 instance
+        try:
+            self.hx.set_reference_unit(ref_unit)
+            self.hx.tare()  # Re-zero with correct scale factor
+        except Exception as exc:
+            self.weight_cal_status = f"Error: Apply failed — {exc}"
+            self.callback_metrics()
+            return
+
+        # Persist to sidecar file alongside calibration_data.json
+        try:
+            cal_dir = os.path.dirname(self.config.calibration_file)
+            weight_cal_path = os.path.join(cal_dir, "weight_calibration.json")
+            payload = {
+                "reference_unit": round(ref_unit, 4),
+                "known_weight_g": self._weight_cal_known_g,
+                "raw_avg_adc": round(raw_avg, 2),
+                "sample_count": len(raw_readings),
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S")
+            }
+            with open(weight_cal_path, "w") as fh:
+                json.dump(payload, fh, indent=2)
+            logger.info(f"Load-cell calibration saved → reference_unit={ref_unit:.2f}  ({weight_cal_path})")
+        except Exception as exc:
+            logger.warning(f"Could not persist weight calibration: {exc}")
+
+        self.weight_cal_status = "Done"
         self.callback_metrics()

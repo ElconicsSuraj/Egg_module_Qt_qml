@@ -441,7 +441,22 @@ def run_api(config):
     uvicorn.run("src.api:app", host="0.0.0.0", port=config.api_port, log_level="info")
 
 def main():
-    config = Config()
+    # Resolve ai_engine directory the same way engine.py does,
+    # so this script works regardless of the current working directory.
+    ai_engine_root = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "ai_engine"
+    )
+    env_path = os.path.join(ai_engine_root, ".env")
+
+    config = Config(env_path if os.path.exists(env_path) else None)
+
+    # Override paths to be absolute (ai_engine-relative), so cwd doesn't matter
+    if not os.path.isabs(config.model_path):
+        config.model_path = os.path.join(ai_engine_root, config.model_path)
+    if not os.path.isabs(config.calibration_file):
+        config.calibration_file = os.path.join(ai_engine_root, config.calibration_file)
+
     config.setup_logging()
 
     mode = config.calibration_mode.lower()

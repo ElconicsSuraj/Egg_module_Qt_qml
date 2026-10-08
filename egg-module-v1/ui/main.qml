@@ -262,7 +262,7 @@ ApplicationWindow {
                 }
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: calibrationWizard.open()
+                    onClicked: calTypeSelector.open()
                 }
             }
 
@@ -339,6 +339,530 @@ ApplicationWindow {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: antzBackend.toggleCandling()
+                }
+            }
+        }
+    }
+
+    //-----------------------------------------
+    // CALIBRATION TYPE SELECTOR
+    //-----------------------------------------
+    Rectangle {
+        id: calTypeSelector
+        anchors.fill: parent
+        color: "#80000000"
+        visible: false
+        z: 90
+
+        function open() {
+            visible = true
+        }
+
+        // Dismiss on backdrop click
+        MouseArea {
+            anchors.fill: parent
+            onClicked: calTypeSelector.visible = false
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: s(520)
+            radius: s(28)
+            color: "#1c1c1c"
+            border.color: "#2a2a2a"
+            border.width: s(2)
+            height: selectorCol.implicitHeight + s(60)
+
+            MouseArea { anchors.fill: parent } // eat clicks inside
+
+            ColumnLayout {
+                id: selectorCol
+                anchors {
+                    top: parent.top; left: parent.left; right: parent.right
+                    margins: s(36)
+                }
+                spacing: s(22)
+
+                // Header
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text {
+                        text: "Select Calibration Type"
+                        color: "#4fc3f7"; font.pixelSize: s(22); font.bold: true
+                        Layout.fillWidth: true
+                    }
+                    // Close X
+                    Rectangle {
+                        width: s(36); height: s(36); radius: s(18)
+                        color: "#333"
+                        Text { anchors.centerIn: parent; text: "✕"; color: "#aaa"; font.pixelSize: s(18) }
+                        MouseArea { anchors.fill: parent; onClicked: calTypeSelector.visible = false }
+                    }
+                }
+
+                // Divider
+                Rectangle { Layout.fillWidth: true; height: s(1); color: "#2a2a2a" }
+
+                // ── Option 1: Egg Dimensional Calibration ──────────────────
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: s(110)
+                    radius: s(16)
+                    color: eggCalHover.containsMouse ? "#1a3a4a" : "#1e2b35"
+                    border.color: "#1e5f8a"
+                    border.width: s(2)
+                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                    HoverHandler { id: eggCalHover }
+
+                    RowLayout {
+                        anchors { fill: parent; margins: s(18) }
+                        spacing: s(18)
+
+                        // Icon
+                        Rectangle {
+                            width: s(56); height: s(56); radius: s(28)
+                            gradient: Gradient {
+                                GradientStop { position: 0; color: "#4fc3f7" }
+                                GradientStop { position: 1; color: "#0288d1" }
+                            }
+                            Text { anchors.centerIn: parent; text: "🥚"; font.pixelSize: s(28) }
+                        }
+
+                        // Label block
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: s(4)
+                            Text {
+                                text: "Egg Dimensional Calibration"
+                                color: "white"; font.pixelSize: s(17); font.bold: true
+                            }
+                            Text {
+                                text: "Compute pixel-to-mm scale factor (PTM) using a reference egg of known L × B dimensions."
+                                color: "#888"; font.pixelSize: s(13)
+                                wrapMode: Text.WordWrap; Layout.fillWidth: true
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            calTypeSelector.visible = false
+                            calibrationWizard.open()
+                        }
+                    }
+                }
+
+                // ── Option 2: Load-Cell Gravimetric Calibration ────────────
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: s(110)
+                    radius: s(16)
+                    color: wtCalHover.containsMouse ? "#1a3a2a" : "#1e2b25"
+                    border.color: "#1e7a4a"
+                    border.width: s(2)
+                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                    HoverHandler { id: wtCalHover }
+
+                    RowLayout {
+                        anchors { fill: parent; margins: s(18) }
+                        spacing: s(18)
+
+                        // Icon
+                        Rectangle {
+                            width: s(56); height: s(56); radius: s(28)
+                            gradient: Gradient {
+                                GradientStop { position: 0; color: "#69f0ae" }
+                                GradientStop { position: 1; color: "#00897b" }
+                            }
+                            Text { anchors.centerIn: parent; text: "⚖️"; font.pixelSize: s(26) }
+                        }
+
+                        // Label block
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: s(4)
+                            Text {
+                                text: "Load-Cell Gravimetric Calibration"
+                                color: "white"; font.pixelSize: s(17); font.bold: true
+                            }
+                            Text {
+                                text: "Derive HX711 reference unit using a traceable calibration mass. Updates live and persists to storage."
+                                color: "#888"; font.pixelSize: s(13)
+                                wrapMode: Text.WordWrap; Layout.fillWidth: true
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            calTypeSelector.visible = false
+                            weightCalWizard.open()
+                        }
+                    }
+                }
+
+                Item { height: s(6) }
+            }
+        }
+    }
+
+    //-----------------------------------------
+    // LOAD-CELL GRAVIMETRIC CALIBRATION WIZARD
+    //-----------------------------------------
+    Rectangle {
+        id: weightCalWizard
+        anchors.fill: parent
+        color: "#80000000"
+        visible: false
+        z: 91
+
+        // "wcStep" states:
+        //   0 = Clear plate — ready to tare
+        //   1 = Taring in progress (auto)
+        //   2 = Place calibration mass + enter its value
+        //   3 = Sampling / computing reference unit (auto)
+        //   4 = Done (success)
+        //   5 = Error
+        property int wcStep: 0
+        property string wcMass: ""
+        property string wcErrorMsg: ""
+
+        function open() {
+            wcStep = 0
+            wcMass = ""
+            wcErrorMsg = ""
+            visible = true
+        }
+
+        // Watch engine state changes
+        Connections {
+            target: antzBackend
+            function onUpdateMetrics() {
+                var st = antzBackend.weightCalStatus
+                if (!weightCalWizard.visible) return
+                if (st === "AwaitingLoad" && weightCalWizard.wcStep === 1) {
+                    weightCalWizard.wcStep = 2
+                } else if (st === "Sampling" && weightCalWizard.wcStep === 2) {
+                    weightCalWizard.wcStep = 3
+                } else if (st === "Done" && weightCalWizard.wcStep === 3) {
+                    weightCalWizard.wcStep = 4
+                } else if (st.startsWith("Error") && weightCalWizard.wcStep >= 1 && weightCalWizard.wcStep <= 3) {
+                    weightCalWizard.wcErrorMsg = st
+                    weightCalWizard.wcStep = 5
+                }
+            }
+        }
+
+        // Backdrop dismiss (only when not mid-calibration)
+        MouseArea {
+            anchors.fill: parent
+            enabled: weightCalWizard.wcStep !== 1 && weightCalWizard.wcStep !== 3
+            onClicked: {
+                antzBackend.cancelWeightCalibration()
+                weightCalWizard.visible = false
+            }
+        }
+
+        Rectangle {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.margins: s(40)
+            width: s(460)
+            height: s(600)
+            radius: s(30)
+            color: "#1a1a1a"
+            border.color: "#2a2a2a"
+            border.width: s(2)
+
+            MouseArea { anchors.fill: parent } // eat inner clicks
+
+            // Close button
+            Rectangle {
+                z: 100
+                anchors.right: parent.right; anchors.top: parent.top
+                anchors.margins: s(16)
+                width: s(36); height: s(36); radius: s(18)
+                color: "#333"
+                visible: weightCalWizard.wcStep !== 1 && weightCalWizard.wcStep !== 3
+                Text { anchors.centerIn: parent; text: "✕"; color: "#aaa"; font.pixelSize: s(18) }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        antzBackend.cancelWeightCalibration()
+                        weightCalWizard.visible = false
+                    }
+                }
+            }
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: s(36)
+                spacing: s(20)
+
+                // Title
+                Text {
+                    text: "Load-Cell Gravimetric Calibration"
+                    color: "#69f0ae"; font.pixelSize: s(20); font.bold: true
+                    Layout.fillWidth: true; wrapMode: Text.WordWrap
+                }
+                Rectangle { Layout.fillWidth: true; height: s(1); color: "#2a2a2a" }
+
+                // ── STEP 0: Clear plate & tare ─────────────────────────────
+                ColumnLayout {
+                    visible: weightCalWizard.wcStep === 0
+                    Layout.fillWidth: true
+                    spacing: s(20)
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Text {
+                        text: "Step 1 of 3 — Zero the Load Cell"
+                        color: "#ffd54f"; font.pixelSize: s(15); font.bold: true
+                    }
+                    Text {
+                        anchors { left: parent ? parent.left : undefined; right: parent ? parent.right : undefined }
+                        text: "⚖️"
+                        font.pixelSize: s(56)
+                        horizontalAlignment: Text.AlignHCenter
+                        Layout.alignment: Qt.AlignHCenter
+                    }
+                    Text {
+                        text: "Remove ALL mass from the weighing plate.\nOnly the bare plate should be on the load cell."
+                        color: "white"; font.pixelSize: s(15)
+                        wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    Text {
+                        text: "Press START TARE to zero the load cell baseline."
+                        color: "#aaa"; font.pixelSize: s(13)
+                        wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+
+                // ── STEP 1: Taring ──────────────────────────────────────────
+                ColumnLayout {
+                    visible: weightCalWizard.wcStep === 1
+                    Layout.fillWidth: true; spacing: s(20)
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Text {
+                        text: "Step 1 of 3 — Zeroing Load Cell"
+                        color: "#ffd54f"; font.pixelSize: s(15); font.bold: true
+                    }
+                    Text {
+                        text: "🔄  Taring in progress…\n\nEnsure the weighing plate is empty.\nDo not touch the load cell."
+                        color: "white"; font.pixelSize: s(17)
+                        wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+
+                // ── STEP 2: Place mass + enter value ───────────────────────
+                ColumnLayout {
+                    visible: weightCalWizard.wcStep === 2
+                    Layout.fillWidth: true; spacing: s(12)
+
+                    Text {
+                        text: "Step 2 of 3 — Apply Calibration Mass"
+                        color: "#ffd54f"; font.pixelSize: s(15); font.bold: true
+                    }
+                    Text {
+                        text: "Load cell zeroed. Place your traceable calibration mass on the weighing plate, then enter its value below."
+                        color: "white"; font.pixelSize: s(14)
+                        wrapMode: Text.WordWrap; Layout.fillWidth: true
+                    }
+
+                    // Mass value display
+                    Column {
+                        Layout.alignment: Qt.AlignHCenter
+                        spacing: s(4)
+                        Text {
+                            text: "Known Calibration Mass (g)"
+                            color: "#888"; font.pixelSize: s(13)
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                        Rectangle {
+                            width: s(200); height: s(60); radius: s(10)
+                            color: "#222"; border.color: "#69f0ae"; border.width: s(2)
+                            Text {
+                                anchors.centerIn: parent
+                                text: weightCalWizard.wcMass || "0"
+                                color: "white"; font.pixelSize: s(32); font.bold: true
+                            }
+                        }
+                    }
+
+                    // Numeric keypad
+                    NumericKeypad {
+                        id: wcNumPad
+                        scaleFactor: root.scaleFactor
+                        Layout.alignment: Qt.AlignHCenter
+                        onDigitClicked: (digit) => {
+                            if (weightCalWizard.wcMass.length < 6)
+                                weightCalWizard.wcMass += digit
+                        }
+                        onBackspaceClicked: () => {
+                            weightCalWizard.wcMass = weightCalWizard.wcMass.slice(0, -1)
+                        }
+                        onEnterClicked: () => {
+                            var g = parseFloat(weightCalWizard.wcMass)
+                            if (g > 0) {
+                                weightCalWizard.wcStep = 3
+                                antzBackend.confirmWeightLoaded(g)
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: "⚠️  Ensure the mass is stable before pressing CALIBRATE."
+                        color: "#ffd54f"; font.pixelSize: s(12)
+                        wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+
+                // ── STEP 3: Sampling ────────────────────────────────────────
+                ColumnLayout {
+                    visible: weightCalWizard.wcStep === 3
+                    Layout.fillWidth: true; spacing: s(20)
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Text {
+                        text: "Step 3 of 3 — Acquiring ADC Samples"
+                        color: "#ffd54f"; font.pixelSize: s(15); font.bold: true
+                    }
+                    Text {
+                        text: "📡  Sampling HX711 raw values (15 samples)…\n\nKeep the mass steady. This takes ~5 seconds."
+                        color: "white"; font.pixelSize: s(16)
+                        wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    // Animated progress bar
+                    Rectangle {
+                        Layout.fillWidth: true; height: s(10); radius: s(5); color: "#222"
+                        Rectangle {
+                            id: wProgressBar
+                            width: 0; height: parent.height; radius: s(5)
+                            gradient: Gradient {
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0; color: "#69f0ae" }
+                                GradientStop { position: 1; color: "#00897b" }
+                            }
+                            SequentialAnimation on width {
+                                running: weightCalWizard.wcStep === 3
+                                NumberAnimation { to: wProgressBar.parent.width * 0.9; duration: 5000; easing.type: Easing.InOutQuad }
+                            }
+                        }
+                    }
+                }
+
+                // ── STEP 4: Done ────────────────────────────────────────────
+                ColumnLayout {
+                    visible: weightCalWizard.wcStep === 4
+                    Layout.fillWidth: true; spacing: s(20)
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Text {
+                        text: "✅  Gravimetric Calibration Complete!"
+                        color: "#69f0ae"; font.pixelSize: s(22); font.bold: true
+                        horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true
+                    }
+                    Text {
+                        text: "HX711 reference unit has been derived and applied.\nThe weighing plate reading is now calibrated.\n\nCalibration data saved to:\nweight_calibration.json"
+                        color: "#ccc"; font.pixelSize: s(14)
+                        wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+
+                // ── STEP 5: Error ───────────────────────────────────────────
+                ColumnLayout {
+                    visible: weightCalWizard.wcStep === 5
+                    Layout.fillWidth: true; spacing: s(20)
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Text {
+                        text: "❌  Calibration Failed"
+                        color: "#ff5252"; font.pixelSize: s(22); font.bold: true
+                        horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true
+                    }
+                    Text {
+                        text: weightCalWizard.wcErrorMsg
+                        color: "#ffcccc"; font.pixelSize: s(14)
+                        wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+
+                Item { Layout.fillHeight: true }
+
+                // Footer actions
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: s(15)
+                    visible: weightCalWizard.wcStep !== 1 && weightCalWizard.wcStep !== 3
+
+                    // Cancel / Back (left)
+                    Rectangle {
+                        Layout.preferredWidth: s(130); Layout.preferredHeight: s(50)
+                        radius: s(25); color: "#333"
+                        visible: weightCalWizard.wcStep !== 4
+                        Text { anchors.centerIn: parent; text: "CANCEL"; color: "white"; font.bold: true; font.pixelSize: s(15) }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                antzBackend.cancelWeightCalibration()
+                                weightCalWizard.visible = false
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    // Primary action (right)
+                    Rectangle {
+                        Layout.preferredWidth: s(180); Layout.preferredHeight: s(50)
+                        radius: s(25)
+                        gradient: Gradient {
+                            GradientStop { position: 0; color: "#69f0ae" }
+                            GradientStop { position: 1; color: "#00897b" }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            text: {
+                                if (weightCalWizard.wcStep === 0) return "START TARE"
+                                if (weightCalWizard.wcStep === 2) return "CALIBRATE"
+                                if (weightCalWizard.wcStep === 4) return "DONE"
+                                if (weightCalWizard.wcStep === 5) return "RETRY"
+                                return "NEXT"
+                            }
+                            color: "black"; font.bold: true; font.pixelSize: s(16)
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                if (weightCalWizard.wcStep === 0) {
+                                    weightCalWizard.wcStep = 1
+                                    antzBackend.beginTare()
+                                } else if (weightCalWizard.wcStep === 2) {
+                                    var g = parseFloat(weightCalWizard.wcMass)
+                                    if (g > 0) {
+                                        weightCalWizard.wcStep = 3
+                                        antzBackend.confirmWeightLoaded(g)
+                                    }
+                                } else if (weightCalWizard.wcStep === 4) {
+                                    weightCalWizard.visible = false
+                                } else if (weightCalWizard.wcStep === 5) {
+                                    weightCalWizard.wcStep = 0
+                                    weightCalWizard.wcMass = ""
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

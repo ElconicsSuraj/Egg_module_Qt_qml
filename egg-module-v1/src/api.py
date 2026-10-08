@@ -69,8 +69,21 @@ def camera_background_thread():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Startup ---
-    config = Config()
+    # Resolve ai_engine/ from THIS file's location so uvicorn re-import
+    # works regardless of the process working directory.
+    _ai_engine_root = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "ai_engine"
+    )
+    _env_path = os.path.join(_ai_engine_root, ".env")
+    config = Config(_env_path if os.path.exists(_env_path) else None)
     config.setup_logging()
+
+    # Promote relative paths to absolute so they survive any cwd
+    if not os.path.isabs(config.model_path):
+        config.model_path = os.path.join(_ai_engine_root, config.model_path)
+    if not os.path.isabs(config.calibration_file):
+        config.calibration_file = os.path.join(_ai_engine_root, config.calibration_file)
 
     detector = EggDetector(config)
     detector.load_model()
