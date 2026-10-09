@@ -142,7 +142,7 @@ ApplicationWindow {
 
             Rectangle {
                 anchors.centerIn: parent
-                width: Math.min(parent.width, parent.height * 1.6) // Preserve aspect ratio roughly
+                width: Math.min(parent.width * 0.92, parent.height * 1.6) // Slightly smaller camera view
                 height: width / 1.6
                 radius: 20
                 clip: true
@@ -224,8 +224,8 @@ ApplicationWindow {
             
             // Tare Button
             Rectangle {
-                width: s(160)
-                height: s(60)
+                width: s(180)
+                height: s(70)
                 radius: s(30)
                 gradient: Gradient {
                     GradientStop { position: 0; color: "#ffd54f" }
@@ -234,7 +234,7 @@ ApplicationWindow {
                 Text {
                     anchors.centerIn: parent
                     text: "Tare"
-                    font.pixelSize: s(20)
+                    font.pixelSize: s(22)
                     font.bold: true
                     color: "black"
                 }
@@ -246,8 +246,8 @@ ApplicationWindow {
 
             // Calibrate Button
             Rectangle {
-                width: s(180)
-                height: s(60)
+                width: s(200)
+                height: s(70)
                 radius: s(30)
                 gradient: Gradient {
                     GradientStop { position: 0; color: "#4fc3f7" }
@@ -256,7 +256,7 @@ ApplicationWindow {
                 Text {
                     anchors.centerIn: parent
                     text: "Calibration"
-                    font.pixelSize: s(20)
+                    font.pixelSize: s(22)
                     font.bold: true
                     color: "white"
                 }
@@ -268,8 +268,8 @@ ApplicationWindow {
 
             // Heartbeat Screening Button
             Rectangle {
-                width: s(250)
-                height: s(60)
+                width: s(280)
+                height: s(70)
                 radius: s(30)
                 gradient: Gradient {
                     GradientStop { position: 0; color: "#00e5ff" }
@@ -284,12 +284,12 @@ ApplicationWindow {
 
                     Text {
                         text: "💓"
-                        font.pixelSize: s(22)
+                        font.pixelSize: s(24)
                     }
 
                     Text {
                         text: "Heartbeat Screening"
-                        font.pixelSize: s(19)
+                        font.pixelSize: s(20)
                         font.bold: true
                         color: "#000000"
                     }
@@ -303,8 +303,8 @@ ApplicationWindow {
 
             // Candling Button
             Rectangle {
-                width: s(200)
-                height: s(60)
+                width: s(220)
+                height: s(70)
                 radius: s(30)
                 gradient: Gradient {
                     GradientStop { 
@@ -325,12 +325,12 @@ ApplicationWindow {
 
                     Text {
                         text: "💡"
-                        font.pixelSize: s(22)
+                        font.pixelSize: s(24)
                     }
 
                     Text {
                         text: antzBackend.candlingState ? "Candling ON" : "Candling"
-                        font.pixelSize: s(20)
+                        font.pixelSize: s(22)
                         font.bold: true
                         color: "#000000"
                     }
